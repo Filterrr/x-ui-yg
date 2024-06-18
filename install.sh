@@ -155,7 +155,7 @@ serinstall(){
 green "下载并安装x-ui相关组件……"
 cd /usr/local/
 #curl -sSL -o /usr/local/x-ui-linux-${cpu}.tar.gz --insecure https://gitlab.com/rwkgyg/x-ui-yg/raw/main/x-ui-linux-${cpu}.tar.gz
-curl -sSL -o /usr/local/x-ui-linux-${cpu}.tar.gz --insecure https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/x-ui-linux-${cpu}.tar.gz
+curl -sSL -o /usr/local/x-ui-linux-${cpu}.tar.gz --insecure https://raw.githubusercontent.com/yonggekkk/x-ui-yg/ex/x-ui-linux-${cpu}.tar.gz
 tar zxvf x-ui-linux-${cpu}.tar.gz > /dev/null 2>&1
 rm x-ui-linux-${cpu}.tar.gz -f
 cd x-ui
@@ -166,7 +166,7 @@ systemctl enable x-ui >/dev/null 2>&1
 systemctl start x-ui >/dev/null 2>&1
 cd
 #curl -sSL -o /usr/bin/x-ui --insecure https://gitlab.com/rwkgyg/x-ui-yg/raw/main/1install.sh >/dev/null 2>&1
-curl -sSL -o /usr/bin/x-ui --insecure https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/install.sh >/dev/null 2>&1
+curl -sSL -o /usr/bin/x-ui --insecure https://raw.githubusercontent.com/yonggekkk/x-ui-yg/ex/install.sh >/dev/null 2>&1
 chmod +x /usr/bin/x-ui
 if [[ x"${release}" == x"alpine" ]]; then
 echo '#!/sbin/openrc-run
