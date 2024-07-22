@@ -236,8 +236,6 @@ done
 sleep 1
 green "x-ui登录密码：${password}"
 /usr/local/x-ui/x-ui setting -username ${username} -password ${password} >/dev/null 2>&1
-green "x-ui登录路径：${path}"
-/usr/local/x-ui/x-ui setting -webBasePath ${path}
 }
 
 portinstall(){
@@ -307,6 +305,10 @@ serinstall
 echo "----------------------------------------------------------------------"
 userinstall
 portinstall
+readp "设置x-ui登录路径：" path
+sleep 1
+green "x-ui登录路径：${path}"
+/usr/local/x-ui/x-ui setting -webBasePath ${path}
 resinstall
 [[ -e /etc/gai.conf ]] && grep -qE '^ *precedence ::ffff:0:0/96  100' /etc/gai.conf || echo 'precedence ::ffff:0:0/96  100' >> /etc/gai.conf 2>/dev/null
 }
