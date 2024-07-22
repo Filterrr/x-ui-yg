@@ -236,6 +236,8 @@ done
 sleep 1
 green "x-ui登录密码：${password}"
 /usr/local/x-ui/x-ui setting -username ${username} -password ${password} >/dev/null 2>&1
+green "x-ui登录路径：${path}"
+/usr/local/x-ui/x-ui setting -webBasePath ${path}
 }
 
 portinstall(){
