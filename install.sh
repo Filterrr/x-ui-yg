@@ -59,7 +59,9 @@ fi
 if [ ! -f xuiyg_update ]; then
 green "首次安装x-ui-yg脚本必要的依赖……"
 if [[ x"${release}" == x"alpine" ]]; then
-apk add wget curl tar jq tzdata openssl expect git socat iproute2 virt-what
+apk update
+apk add wget curl tar jq tzdata openssl expect git socat iproute2
+apk add virt-what
 else
 if [[ $release = Centos && ${vsid} =~ 8 ]]; then
 cd /etc/yum.repos.d/ && mkdir backup && mv *repo backup/ 
@@ -426,7 +428,11 @@ fi
 }
 
 show_log() {
+if [[ x"${release}" == x"alpine" ]]; then
+yellow "暂不支持alpine查看日志"
+else
 journalctl -u x-ui.service -e --no-pager -f
+fi
 }
 
 get_char(){
@@ -793,14 +799,14 @@ kill -15 $(cat /usr/local/x-ui/xuiargoympid.log 2>/dev/null) >/dev/null 2>&1
 fi
 echo
 if [[ -n "${argotoken}" && -n "${argoym}" ]]; then
-nohup setsid /usr/local/x-ui/cloudflared tunnel --edge-ip-version auto run --token ${argotoken} >/dev/null 2>&1 & echo "$!" > /usr/local/x-ui/xuiargoympid.log
+nohup setsid /usr/local/x-ui/cloudflared tunnel --no-autoupdate --edge-ip-version auto run --token ${argotoken} >/dev/null 2>&1 & echo "$!" > /usr/local/x-ui/xuiargoympid.log
 sleep 20
 fi
 echo ${argoym} > /usr/local/x-ui/xuiargoym.log
 echo ${argotoken} > /usr/local/x-ui/xuiargotoken.log
 crontab -l > /tmp/crontab.tmp
 sed -i '/xuiargoympid/d' /tmp/crontab.tmp
-echo '@reboot /bin/bash -c "nohup setsid /usr/local/x-ui/cloudflared tunnel --edge-ip-version auto run --token $(cat /usr/local/x-ui/xuiargotoken.log 2>/dev/null) >/dev/null 2>&1 & pid=\$! && echo \$pid > /usr/local/x-ui/xuiargoympid.log"' >> /tmp/crontab.tmp
+echo '@reboot /bin/bash -c "nohup setsid /usr/local/x-ui/cloudflared tunnel --no-autoupdate --edge-ip-version auto run --token $(cat /usr/local/x-ui/xuiargotoken.log 2>/dev/null) >/dev/null 2>&1 & pid=\$! && echo \$pid > /usr/local/x-ui/xuiargoympid.log"' >> /tmp/crontab.tmp
 crontab /tmp/crontab.tmp
 rm /tmp/crontab.tmp
 argo=$(cat /usr/local/x-ui/xuiargoym.log 2>/dev/null)
@@ -2435,7 +2441,7 @@ xport=$(echo $acp | awk '{print $6}')
 xip1=$(cat /usr/local/x-ui/xip 2>/dev/null | sed -n 1p)
 xip2=$(cat /usr/local/x-ui/xip 2>/dev/null | sed -n 2p)
 #if [ "$xpath" == "" ]; then
-if [[ -z "$xpath" || "$xpath" == / ]]; then
+if [ "$xpath" == "/" ]; then
 path="$sred【严重安全提示: 请进入面板设置，添加url根路径】$plain"
 fi
 echo -e "x-ui登录信息如下："
