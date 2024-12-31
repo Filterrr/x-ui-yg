@@ -212,7 +212,7 @@ fi
 echo -e "x-ui登录信息如下："
 echo -e "$blue$acp$pathk$plain" 
 xuimb="http://${xip1}:${xport}${xpath}"
-echo -e "$blue登录地址(裸IP泄露模式-非安全)：$xuimb$plain"
+#echo -e "$blue登录地址(裸IP泄露模式-非安全)：$xuimb$plain"
 fi
 else
 echo -e "x-ui登录信息如下："
