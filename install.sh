@@ -17,24 +17,7 @@ if ! (uname -a | grep -Eqi "freebsd"); then
 [[ $EUID -ne 0 ]] && yellow "请以root模式运行脚本" && exit
 fi
 cur_dir=$(pwd)
-#[[ -e /etc/hosts ]] && grep -qE '^ *172.65.251.78 gitlab.com' /etc/hosts || echo -e '\n172.65.251.78 gitlab.com' >> /etc/hosts
-if [[ -f /etc/redhat-release ]]; then
-release="Centos"
-elif cat /etc/issue | grep -q -E -i "alpine"; then
-release="alpine"
-elif cat /etc/issue | grep -q -E -i "debian"; then
-release="Debian"
-elif cat /etc/issue | grep -q -E -i "ubuntu"; then
-release="Ubuntu"
-elif cat /etc/issue | grep -q -E -i "centos|red hat|redhat"; then
-release="Centos"
-elif cat /proc/version | grep -q -E -i "debian"; then
-release="Debian"
-elif cat /proc/version | grep -q -E -i "ubuntu"; then
-release="Ubuntu"
-elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
-release="Centos"
-elif uname -a | grep -Eqi "freebsd"; then
+if uname -a | grep -Eqi "freebsd"; then
 release="freebsd"
 else 
 red "不支持当前的系统，请选择使用Ubuntu,Debian,Centos系统。" && exit
@@ -48,9 +31,9 @@ fi
 version=$(uname -r | cut -d "-" -f1)
 [[ -z $(systemd-detect-virt 2>/dev/null) ]] && vi=$(virt-what 2>/dev/null) || vi=$(systemd-detect-virt 2>/dev/null)
 case $(uname -m) in
-aarch64) cpu=arm64;;
-x86_64) cpu=amd64;;
-*) red "目前脚本不支持$(uname -m)架构" && exit;;
+  aarch64) cpu=arm64 ;;
+  x86_64|amd64) cpu=amd64 ;;
+  *) red "目前脚本不支持$(uname -m)架构" && exit ;;
 esac
 
 argopid(){
