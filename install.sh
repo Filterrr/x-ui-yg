@@ -196,7 +196,7 @@ echo -e "系统:$blue$op$plain  \c";echo -e "内核:$blue$version$plain  \c";ech
 v4v6
 echo -e "本地IPV4地址：$blue$vps_ipv4$w4$plain"
 echo "------------------------------------------------------------------------------------"
-show_status
+
 echo "------------------------------------------------------------------------------------"
 acp=$(./x-ui setting -show 2>/dev/null)
 if [[ -n $acp ]]; then
@@ -222,10 +222,7 @@ red "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 echo
 readp "请输入数字【0-13】:" Input
 case "$Input" in     
- 1 ) check_uninstall && xuiinstall;;
- 2 ) check_install && uninstall;;
- 3 ) check_install && xuichange;;
- 4 ) check_install && show_log;;
+ 1 ) xuiinstall;;
  * ) exit 
 esac
 }
