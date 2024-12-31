@@ -13,7 +13,10 @@ yellow(){ echo -e "\033[33m\033[01m$1\033[0m";}
 blue(){ echo -e "\033[36m\033[01m$1\033[0m";}
 white(){ echo -e "\033[37m\033[01m$1\033[0m";}
 readp(){ read -p "$(yellow "$1")" $2;}
+if ! (uname -a | grep -Eqi "freebsd"); then
 [[ $EUID -ne 0 ]] && yellow "请以root模式运行脚本" && exit
+fi
+cur_dir=$(pwd)
 #[[ -e /etc/hosts ]] && grep -qE '^ *172.65.251.78 gitlab.com' /etc/hosts || echo -e '\n172.65.251.78 gitlab.com' >> /etc/hosts
 if [[ -f /etc/redhat-release ]]; then
 release="Centos"
@@ -31,6 +34,8 @@ elif cat /proc/version | grep -q -E -i "ubuntu"; then
 release="Ubuntu"
 elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
 release="Centos"
+elif uname -a | grep -Eqi "freebsd"; then
+release="freebsd"
 else 
 red "不支持当前的系统，请选择使用Ubuntu,Debian,Centos系统。" && exit
 fi
@@ -48,6 +53,7 @@ x86_64) cpu=amd64;;
 *) red "目前脚本不支持$(uname -m)架构" && exit;;
 esac
 
+if ! (uname -a | grep -Eqi "freebsd"); then
 if [[ -n $(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk -F ' ' '{print $3}') ]]; then
 bbr=`sysctl net.ipv4.tcp_congestion_control | awk -F ' ' '{print $3}'`
 elif [[ -n $(ping 10.0.0.2 -c 2 | grep ttl) ]]; then
@@ -92,8 +98,8 @@ fi
 fi
 fi
 
-packages=("curl" "openssl" "tar" "expect" "wget" "git" "cron")
-inspackages=("curl" "openssl" "tar" "expect" "wget" "git" "cron")
+packages=("curl" "openssl" "tar" "expect" "xxd" "python3" "wget" "git")
+inspackages=("curl" "openssl" "tar" "expect" "xxd" "python3" "wget" "git")
 for i in "${!packages[@]}"; do
 package="${packages[$i]}"
 inspackage="${inspackages[$i]}"
@@ -127,6 +133,19 @@ fi
 fi
 fi
 
+v6(){
+warpcheck
+if [[ ! $wgcfv4 =~ on|plus && ! $wgcfv6 =~ on|plus ]]; then
+v4=$(curl -s4m5 icanhazip.com -k)
+if [ -z $v4 ]; then
+yellow "检测到 纯IPV6 VPS，添加DNS64"
+echo -e "nameserver 2a00:1098:2b::1\nnameserver 2a00:1098:2c::1\nnameserver 2a01:4f8:c2c:123f::1" > /etc/resolv.conf
+fi
+fi
+}
+
+fi
+
 argopid(){
 ym=$(cat /usr/local/x-ui/xuiargoympid.log 2>/dev/null)
 ls=$(cat /usr/local/x-ui/xuiargopid.log 2>/dev/null)
@@ -142,22 +161,45 @@ wgcfv6=$(curl -s6m5 https://www.cloudflare.com/cdn-cgi/trace -k | grep warp | cu
 wgcfv4=$(curl -s4m5 https://www.cloudflare.com/cdn-cgi/trace -k | grep warp | cut -d= -f2)
 }
 
-v6(){
-warpcheck
-if [[ ! $wgcfv4 =~ on|plus && ! $wgcfv6 =~ on|plus ]]; then
-v4=$(curl -s4m5 icanhazip.com -k)
-if [ -z $v4 ]; then
-yellow "检测到 纯IPV6 VPS，添加DNS64"
-echo -e "nameserver 2a00:1098:2b::1\nnameserver 2a00:1098:2c::1\nnameserver 2a01:4f8:c2c:123f::1" > /etc/resolv.conf
-fi
-fi
+stop_x-ui() {
+    # 设置你想要杀死的nohup进程的命令名
+    xui_com="./x-ui run"
+    xray_com="bin/xray-$release-$arch -c bin/config.json"
+ 
+    # 使用pgrep查找进程ID
+    PID=$(pgrep -f "$xray_com")
+ 
+    # 检查是否找到了进程
+    if [ ! -z "$PID" ]; then
+        # 找到了进程，杀死它
+        kill $PID
+    
+        # 可选：检查进程是否已经被杀死
+        if kill -0 $PID > /dev/null 2>&1; then
+            kill -9 $PID
+        fi
+    fi
+    # 使用pgrep查找进程ID
+    PID=$(pgrep -f "$xui_com")
+ 
+    # 检查是否找到了进程
+    if [ ! -z "$PID" ]; then
+        # 找到了进程，杀死它
+        kill $PID
+    
+        # 可选：检查进程是否已经被杀死
+        if kill -0 $PID > /dev/null 2>&1; then
+            kill -9 $PID
+        fi
+    fi
 }
 
 serinstall(){
 green "下载并安装x-ui相关组件……"
+if ! (uname -a | grep -Eqi "freebsd"); then
 cd /usr/local/
 #curl -L -o /usr/local/x-ui-linux-${cpu}.tar.gz --insecure https://gitlab.com/rwkgyg/x-ui-yg/raw/main/x-ui-linux-${cpu}.tar.gz
-curl -L -o /usr/local/x-ui-linux-${cpu}.tar.gz -# --retry 2 --insecure https://raw.githubusercontent.com/yonggekkk/x-ui-yg/ex/x-ui-linux-${cpu}.tar.gz
+curl -L -o /usr/local/x-ui-linux-${cpu}.tar.gz -# --retry 2 --insecure https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/x-ui-linux-${cpu}.tar.gz
 tar zxvf x-ui-linux-${cpu}.tar.gz > /dev/null 2>&1
 rm x-ui-linux-${cpu}.tar.gz -f
 cd x-ui
@@ -167,8 +209,9 @@ systemctl daemon-reload >/dev/null 2>&1
 systemctl enable x-ui >/dev/null 2>&1
 systemctl start x-ui >/dev/null 2>&1
 cd
+rm /usr/bin/x-ui -f
 #curl -L -o /usr/bin/x-ui --insecure https://gitlab.com/rwkgyg/x-ui-yg/raw/main/1install.sh >/dev/null 2>&1
-curl -L -o /usr/bin/x-ui -# --retry 2 --insecure https://raw.githubusercontent.com/yonggekkk/x-ui-yg/ex/install.sh
+curl -L -o /usr/bin/x-ui -# --retry 2 --insecure https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/install.sh
 chmod +x /usr/bin/x-ui
 if [[ x"${release}" == x"alpine" ]]; then
 echo '#!/sbin/openrc-run
@@ -204,6 +247,24 @@ rm /etc/x-ui-yg/ -rf
 rm /usr/local/x-ui/ -rf
 rm -rf xuiyg_update
 exit
+fi
+else
+stop_x-ui
+#last_version=$(curl -Ls "https://api.github.com/repos/yonggekkk/x-ui-yg/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+curl -L -o x-ui-freebsd-amd64.tar.gz -# --retry 2 --insecure https://github.com/yonggekkk/x-ui-yg/releases/download/1.0/x-ui-freebsd-amd64.tar.gz
+if [[ -e ./x-ui/ ]]; then
+rm ./x-ui/ -rf
+fi
+tar zxvf x-ui-freebsd-amd64.tar.gz
+rm -f x-ui-freebsd-amd64.tar.gz
+cd x-ui
+chmod +x x-ui bin/xray-freebsd-amd64
+cp x-ui.sh ../x-ui.sh
+chmod +x ../x-ui.sh
+chmod +x x-ui.sh
+
+
+    
 fi
 }
 
@@ -242,10 +303,10 @@ green "x-ui登录密码：${password}"
 
 portinstall(){
 echo
-readp "设置 x-ui 登录端口[1-65535]（回车跳过为2000-65535之间的随机端口）：" port
+readp "设置 x-ui 登录端口[1-65535]（回车跳过为10000-65535之间的随机端口）：" port
 sleep 1
 if [[ -z $port ]]; then
-port=$(shuf -i 2000-65535 -n 1)
+port=$(shuf -i 10000-65535 -n 1)
 until [[ -z $(ss -tunlp | grep -w udp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") && -z $(ss -tunlp | grep -w tcp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") ]] 
 do
 [[ -n $(ss -tunlp | grep -w udp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") || -n $(ss -tunlp | grep -w tcp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") ]] && yellow "\n端口被占用，请重新输入端口" && readp "自定义端口:" port
@@ -272,11 +333,7 @@ fi
 green "x-ui登录根路径：${path}"
 }
 
-resinstall(){
-echo "----------------------------------------------------------------------"
-restart
-#curl -sL https://gitlab.com/rwkgyg/x-ui-yg/-/raw/main/version/version | awk -F "更新内容" '{print $1}' | head -n 1 > /usr/local/x-ui/v
-curl -sL https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/version | awk -F "更新内容" '{print $1}' | head -n 1 > /usr/local/x-ui/v
+showxuiip(){
 xuilogin(){
 v4v6
 if [[ -z $v4 ]]; then
@@ -300,6 +357,14 @@ systemctl restart warp-go >/dev/null 2>&1
 systemctl enable warp-go >/dev/null 2>&1
 systemctl start warp-go >/dev/null 2>&1
 fi
+}
+
+resinstall(){
+echo "----------------------------------------------------------------------"
+restart
+#curl -sL https://gitlab.com/rwkgyg/x-ui-yg/-/raw/main/version/version | awk -F "更新内容" '{print $1}' | head -n 1 > /usr/local/x-ui/v
+curl -sL https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/version | awk -F "更新内容" '{print $1}' | head -n 1 > /usr/local/x-ui/v
+showxuiip
 sleep 2
 xuigo
 cronxui
@@ -363,6 +428,7 @@ systemctl reset-failed
 fi
 kill -15 $(cat /usr/local/x-ui/xuiargopid.log 2>/dev/null) >/dev/null 2>&1
 kill -15 $(cat /usr/local/x-ui/xuiargoympid.log 2>/dev/null) >/dev/null 2>&1
+kill -15 $(cat /usr/local/x-ui/xuiwpphid.log 2>/dev/null) >/dev/null 2>&1
 rm /usr/bin/x-ui -f
 rm /etc/x-ui-yg/ -rf
 rm /usr/local/x-ui/ -rf
@@ -405,6 +471,7 @@ fi
 }
 
 restart() {
+yellow "请稍等……"
 if [[ x"${release}" == x"alpine" ]]; then
 rc-service x-ui restart
 else
@@ -638,6 +705,7 @@ sed -i '/systemctl restart x-ui/d' /tmp/crontab.tmp
 sed -i '/xuiargoport.log/d' /tmp/crontab.tmp
 sed -i '/xuiargopid.log/d' /tmp/crontab.tmp
 sed -i '/xuiargoympid/d' /tmp/crontab.tmp
+sed -i '/xuiwpphid.log/d' /tmp/crontab.tmp
 crontab /tmp/crontab.tmp
 rm /tmp/crontab.tmp
 }
@@ -676,19 +744,68 @@ red "输入错误,请重新选择" && openyn
 fi
 }
 
-
 changeserv(){
 echo
-readp "1：设置Argo临时、固定隧道\n2：设置vmess与vless节点在订阅链接中的优选IP地址\n3：设置Gitlab订阅分享链接\n0：返回上层\n请选择【0-3】：" menu
+readp "1：设置Argo临时、固定隧道\n2：设置vmess与vless节点在订阅链接中的优选IP地址\n3：设置Gitlab订阅分享链接\n4：获取warp-wireguard普通账号配置\n0：返回上层\n请选择【0-4】：" menu
 if [ "$menu" = "1" ];then
 xuiargo
 elif [ "$menu" = "2" ];then
 xuicfadd
 elif [ "$menu" = "3" ];then
 gitlabsub
+elif [ "$menu" = "4" ];then
+warpwg
 else 
 show_menu
 fi
+}
+
+warpwg(){
+warpcode(){
+reg(){
+keypair=$(openssl genpkey -algorithm X25519|openssl pkey -text -noout)
+private_key=$(echo "$keypair" | awk '/priv:/{flag=1; next} /pub:/{flag=0} flag' | tr -d '[:space:]' | xxd -r -p | base64)
+public_key=$(echo "$keypair" | awk '/pub:/{flag=1} flag' | tr -d '[:space:]' | xxd -r -p | base64)
+curl -X POST 'https://api.cloudflareclient.com/v0a2158/reg' -sL --tlsv1.3 \
+-H 'CF-Client-Version: a-7.21-0721' -H 'Content-Type: application/json' \
+-d \
+'{
+"key":"'${public_key}'",
+"tos":"'$(date +"%Y-%m-%dT%H:%M:%S.000Z")'"
+}' \
+| python3 -m json.tool | sed "/\"account_type\"/i\         \"private_key\": \"$private_key\","
+}
+reserved(){
+reserved_str=$(echo "$warp_info" | grep 'client_id' | cut -d\" -f4)
+reserved_hex=$(echo "$reserved_str" | base64 -d | xxd -p)
+reserved_dec=$(echo "$reserved_hex" | fold -w2 | while read HEX; do printf '%d ' "0x${HEX}"; done | awk '{print "["$1", "$2", "$3"]"}')
+echo -e "{\n    \"reserved_dec\": $reserved_dec,"
+echo -e "    \"reserved_hex\": \"0x$reserved_hex\","
+echo -e "    \"reserved_str\": \"$reserved_str\"\n}"
+}
+result() {
+echo "$warp_reserved" | grep -P "reserved" | sed "s/ //g" | sed 's/:"/: "/g' | sed 's/:\[/: \[/g' | sed 's/\([0-9]\+\),\([0-9]\+\),\([0-9]\+\)/\1, \2, \3/' | sed 's/^"/    "/g' | sed 's/"$/",/g'
+echo "$warp_info" | grep -P "(private_key|public_key|\"v4\": \"172.16.0.2\"|\"v6\": \"2)" | sed "s/ //g" | sed 's/:"/: "/g' | sed 's/^"/    "/g'
+echo "}"
+}
+warp_info=$(reg) 
+warp_reserved=$(reserved) 
+result
+}
+output=$(warpcode)
+if ! echo "$output" 2>/dev/null | grep -w "private_key" > /dev/null; then
+v6=2606:4700:110:8f20:f22e:2c8d:d8ee:fe7
+pvk=SGU6hx3CJAWGMr6XYoChvnrKV61hxAw2S4VlgBAxzFs=
+res=[15,242,244]
+else
+pvk=$(echo "$output" | sed -n 4p | awk '{print $2}' | tr -d ' "' | sed 's/.$//')
+v6=$(echo "$output" | sed -n 7p | awk '{print $2}' | tr -d ' "')
+res=$(echo "$output" | sed -n 1p | awk -F":" '{print $NF}' | tr -d ' ' | sed 's/.$//')
+fi
+green "成功生成warp-wireguard普通账号配置，进入x-ui面板-面板设置-Xray配置出站设置，进行三要素替换"
+blue "Private_key私钥：$pvk"
+blue "IPV6地址：$v6"
+blue "reserved值：$res"
 }
 
 cloudflaredargo(){
@@ -707,9 +824,10 @@ fi
 
 xuiargo(){
 echo
-yellow "开启Argo隧道节点的两个前提要求："
+yellow "开启Argo隧道节点的三个前提要求："
 green "一、节点的传输协议是WS"
 green "二、节点的TLS必须关闭"
+green "三、节点的请求头留空不设"
 green "节点类别可选：vmess-ws、vless-ws、trojan-ws、shadowsocks-ws。推荐vmess-ws"
 echo
 yellow "1：设置Argo临时隧道"
@@ -741,7 +859,7 @@ yellow "第$i次刷新验证Cloudflared Argo隧道域名有效性，请稍等…
 if [[ -n $(ps -e | grep cloudflared) ]]; then
 kill -15 $(cat /usr/local/x-ui/xuiargopid.log 2>/dev/null) >/dev/null 2>&1
 fi
-/usr/local/x-ui/cloudflared tunnel --url http://localhost:$port --edge-ip-version auto --no-autoupdate > /usr/local/x-ui/argo.log 2>&1 &
+/usr/local/x-ui/cloudflared tunnel --url http://localhost:$port --edge-ip-version auto --no-autoupdate --protocol http2 > /usr/local/x-ui/argo.log 2>&1 &
 echo "$!" > /usr/local/x-ui/xuiargopid.log
 sleep 20
 if [[ -n $(curl -sL https://$(cat /usr/local/x-ui/argo.log 2>/dev/null | grep -a trycloudflare.com | awk 'NR==2{print}' | awk -F// '{print $2}' | awk '{print $1}')/ -I | awk 'NR==1 && /404|400|503/') ]]; then
@@ -760,7 +878,7 @@ sed -i '/xuiargoport.log/d' /tmp/crontab.tmp
 crontab /tmp/crontab.tmp
 rm /tmp/crontab.tmp
 crontab -l > /tmp/crontab.tmp
-echo '@reboot /bin/bash -c "/usr/local/x-ui/cloudflared tunnel --url http://localhost:$(cat /usr/local/x-ui/xuiargoport.log) --edge-ip-version auto --no-autoupdate > /usr/local/x-ui/argo.log 2>&1 & pid=\$! && echo \$pid > /usr/local/x-ui/xuiargopid.log"' >> /tmp/crontab.tmp
+echo '@reboot /bin/bash -c "/usr/local/x-ui/cloudflared tunnel --url http://localhost:$(cat /usr/local/x-ui/xuiargoport.log) --edge-ip-version auto --no-autoupdate --protocol http2 > /usr/local/x-ui/argo.log 2>&1 & pid=\$! && echo \$pid > /usr/local/x-ui/xuiargopid.log"' >> /tmp/crontab.tmp
 crontab /tmp/crontab.tmp
 rm /tmp/crontab.tmp
 elif [ "$menu" = "2" ]; then
@@ -799,14 +917,14 @@ kill -15 $(cat /usr/local/x-ui/xuiargoympid.log 2>/dev/null) >/dev/null 2>&1
 fi
 echo
 if [[ -n "${argotoken}" && -n "${argoym}" ]]; then
-nohup setsid /usr/local/x-ui/cloudflared tunnel --no-autoupdate --edge-ip-version auto run --token ${argotoken} >/dev/null 2>&1 & echo "$!" > /usr/local/x-ui/xuiargoympid.log
+nohup setsid /usr/local/x-ui/cloudflared tunnel --no-autoupdate --edge-ip-version auto --protocol http2 run --token ${argotoken} >/dev/null 2>&1 & echo "$!" > /usr/local/x-ui/xuiargoympid.log
 sleep 20
 fi
 echo ${argoym} > /usr/local/x-ui/xuiargoym.log
 echo ${argotoken} > /usr/local/x-ui/xuiargotoken.log
 crontab -l > /tmp/crontab.tmp
 sed -i '/xuiargoympid/d' /tmp/crontab.tmp
-echo '@reboot /bin/bash -c "nohup setsid /usr/local/x-ui/cloudflared tunnel --no-autoupdate --edge-ip-version auto run --token $(cat /usr/local/x-ui/xuiargotoken.log 2>/dev/null) >/dev/null 2>&1 & pid=\$! && echo \$pid > /usr/local/x-ui/xuiargoympid.log"' >> /tmp/crontab.tmp
+echo '@reboot /bin/bash -c "nohup setsid /usr/local/x-ui/cloudflared tunnel --no-autoupdate --edge-ip-version auto --protocol http2 run --token $(cat /usr/local/x-ui/xuiargotoken.log 2>/dev/null) >/dev/null 2>&1 & pid=\$! && echo \$pid > /usr/local/x-ui/xuiargoympid.log"' >> /tmp/crontab.tmp
 crontab /tmp/crontab.tmp
 rm /tmp/crontab.tmp
 argo=$(cat /usr/local/x-ui/xuiargoym.log 2>/dev/null)
@@ -1045,10 +1163,6 @@ cat > /usr/local/x-ui/bin/xui_singbox.json <<EOF
                 "detour": "direct"
             },
             {
-                "address": "rcode://refused",
-                "tag": "block"
-            },
-            {
                 "tag": "dns_fakeip",
                 "address": "fakeip"
             }
@@ -1095,8 +1209,11 @@ cat > /usr/local/x-ui/bin/xui_singbox.json <<EOF
       "inbounds": [
     {
       "type": "tun",
-      "inet4_address": "172.19.0.1/30",
-      "inet6_address": "fd00::1/126",
+      "tag": "tun-in",
+      "address": [
+      "172.19.0.1/30",
+      "fd00::1/126"
+      ],
       "auto_route": true,
       "strict_route": true,
       "sniff": true,
@@ -1111,14 +1228,6 @@ cat > /usr/local/x-ui/bin/xui_singbox.json <<EOF
     {
       "tag": "direct",
       "type": "direct"
-    },
-    {
-      "tag": "block",
-      "type": "block"
-    },
-    {
-      "tag": "dns-out",
-      "type": "dns"
     },
     {
       "tag": "select",
@@ -1176,8 +1285,17 @@ cat > /usr/local/x-ui/bin/xui_singbox.json <<EOF
     "final": "select",
     "rules": [
       {
-        "outbound": "dns-out",
-        "protocol": "dns"
+      "inbound": "tun-in",
+      "action": "sniff"
+      },
+      {
+      "protocol": "dns",
+      "action": "hijack-dns"
+      },
+      {
+      "port": 443,
+      "network": "udp",
+      "action": "reject"
       },
       {
         "clash_mode": "Direct",
@@ -1353,7 +1471,7 @@ cat > /usr/local/x-ui/bin/cl${i}.log <<EOF
   servername: $vl_name                 
   reality-opts: 
     public-key: $public_key    
-    short-id: '$short_id'                      
+    short-id: $short_id                      
   client-fingerprint: $finger   
 
 EOF
@@ -2291,6 +2409,128 @@ baseurl=$(echo -e "$url" | base64 -w 0)
 echo "$baseurl" > /usr/local/x-ui/bin/xui_ty.txt
 }
 
+insxuiwpph(){
+ins(){
+if [ ! -e /usr/local/x-ui/xuiwpph ]; then
+case $(uname -m) in
+aarch64) cpu=arm64;;
+x86_64) cpu=amd64;;
+esac
+curl -L -o /usr/local/x-ui/xuiwpph -# --retry 2 --insecure https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/xuiwpph_$cpu
+chmod +x /usr/local/x-ui/xuiwpph
+fi
+if [[ -n $(ps -e | grep xuiwpph) ]]; then
+kill -15 $(cat /usr/local/x-ui/xuiwpphid.log 2>/dev/null) >/dev/null 2>&1
+fi
+v4v6
+if [[ -z $v4 ]]; then
+red "IPV4不存在，确保安装过WARP-IPV4模式"
+fi 
+[[ -n $v6 ]] && sw46=6 || sw46=4
+echo
+readp "设置WARP-plus-Socks5端口（回车跳过端口默认40000）：" port
+if [[ -z $port ]]; then
+port=40000
+until [[ -z $(ss -tunlp | grep -w udp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") && -z $(ss -tunlp | grep -w tcp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") ]] 
+do
+[[ -n $(ss -tunlp | grep -w udp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") || -n $(ss -tunlp | grep -w tcp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") ]] && yellow "\n端口被占用，请重新输入端口" && readp "自定义端口:" port
+done
+else
+until [[ -z $(ss -tunlp | grep -w udp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") && -z $(ss -tunlp | grep -w tcp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") ]]
+do
+[[ -n $(ss -tunlp | grep -w udp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") || -n $(ss -tunlp | grep -w tcp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") ]] && yellow "\n端口被占用，请重新输入端口" && readp "自定义端口:" port
+done
+fi
+}
+unins(){
+kill -15 $(cat /usr/local/x-ui/xuiwpphid.log 2>/dev/null) >/dev/null 2>&1
+rm -rf /usr/local/x-ui/xuiwpph.log /usr/local/x-ui/xuiwpphid.log
+crontab -l > /tmp/crontab.tmp
+sed -i '/xuiwpphid.log/d' /tmp/crontab.tmp
+crontab /tmp/crontab.tmp
+rm /tmp/crontab.tmp
+}
+echo
+yellow "1：重置启用WARP-plus-Socks5本地Warp代理模式"
+yellow "2：重置启用WARP-plus-Socks5多地区Psiphon代理模式"
+yellow "3：停止WARP-plus-Socks5代理模式"
+yellow "0：返回上层"
+readp "请选择【0-3】：" menu
+if [ "$menu" = "1" ]; then
+ins
+nohup setsid /usr/local/x-ui/xuiwpph -b 127.0.0.1:$port --gool -$sw46 >/dev/null 2>&1 & echo "$!" > /usr/local/x-ui/xuiwpphid.log
+green "申请IP中……请稍等……" && sleep 20
+resv1=$(curl -s --socks5 localhost:$port icanhazip.com)
+resv2=$(curl -sx socks5h://localhost:$port icanhazip.com)
+if [[ -z $resv1 && -z $resv2 ]]; then
+red "WARP-plus-Socks5的IP获取失败" && unins && exit
+else
+echo "/usr/local/x-ui/xuiwpph -b 127.0.0.1:$port --gool -$sw46 >/dev/null 2>&1" > /usr/local/x-ui/xuiwpph.log
+crontab -l > /tmp/crontab.tmp
+sed -i '/xuiwpphid.log/d' /tmp/crontab.tmp
+echo '@reboot /bin/bash -c "nohup setsid $(cat /usr/local/x-ui/xuiwpph.log 2>/dev/null) & pid=\$! && echo \$pid > /usr/local/x-ui/xuiwpphid.log"' >> /tmp/crontab.tmp
+crontab /tmp/crontab.tmp
+rm /tmp/crontab.tmp
+green "WARP-plus-Socks5的IP获取成功，可进行Socks5代理分流"
+fi
+elif [ "$menu" = "2" ]; then
+ins
+echo '
+奥地利（AT）
+澳大利亚（AU）
+比利时（BE）
+保加利亚（BG）
+加拿大（CA）
+瑞士（CH）
+捷克 (CZ)
+德国（DE）
+丹麦（DK）
+爱沙尼亚（EE）
+西班牙（ES）
+芬兰（FI）
+法国（FR）
+英国（GB）
+克罗地亚（HR）
+匈牙利 (HU)
+爱尔兰（IE）
+印度（IN）
+意大利 (IT)
+日本（JP）
+拉脱维亚（LV）
+荷兰（NL）
+挪威 (NO)
+波兰（PL）
+葡萄牙（PT）
+罗马尼亚 (RO)
+塞尔维亚（RS）
+瑞典（SE）
+新加坡 (SG)
+斯洛伐克（SK）
+美国（US）
+'
+readp "可选择国家地区（输入末尾两个大写字母，如美国，则输入US）：" guojia
+nohup setsid /usr/local/x-ui/xuiwpph -b 127.0.0.1:$port --cfon --country $guojia -$sw46 >/dev/null 2>&1 & echo "$!" > /usr/local/x-ui/xuiwpphid.log
+green "申请IP中……请稍等……" && sleep 20
+resv1=$(curl -s --socks5 localhost:$port icanhazip.com)
+resv2=$(curl -sx socks5h://localhost:$port icanhazip.com)
+if [[ -z $resv1 && -z $resv2 ]]; then
+red "WARP-plus-Socks5的IP获取失败，尝试换个国家地区吧" && unins && exit
+else
+echo "/usr/local/x-ui/xuiwpph -b 127.0.0.1:$port --cfon --country $guojia -$sw46 >/dev/null 2>&1" > /usr/local/x-ui/xuiwpph.log
+crontab -l > /tmp/crontab.tmp
+sed -i '/xuiwpphid.log/d' /tmp/crontab.tmp
+echo '@reboot /bin/bash -c "nohup setsid $(cat /usr/local/x-ui/xuiwpph.log 2>/dev/null) & pid=\$! && echo \$pid > /usr/local/x-ui/xuiwpphid.log"' >> /tmp/crontab.tmp
+crontab /tmp/crontab.tmp
+rm /tmp/crontab.tmp
+green "WARP-plus-Socks5的IP获取成功，可进行Socks5代理分流"
+fi
+elif [ "$menu" = "3" ]; then
+unins && green "已停止WARP-plus-Socks5代理功能"
+else
+show_menu
+fi
+}
+
 show_menu(){
 clear
 white "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"           
@@ -2310,7 +2550,7 @@ red "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 green " 1. 一键安装 x-ui"
 green " 2. 删除卸载 x-ui"
 echo "----------------------------------------------------------------------------------"
-green " 3. 其他设置 【Argo双隧道、订阅优选IP、Gitlab订阅链接】"
+green " 3. 其他设置 【Argo双隧道、订阅优选IP、Gitlab订阅链接、获取warp-wireguard账号配置】"
 green " 4. 变更 x-ui 面板设置 【用户名密码、登录端口、根路径、还原面板】"
 green " 5. 关闭、重启 x-ui"
 green " 6. 更新 x-ui 脚本"
@@ -2319,8 +2559,9 @@ green " 7. 更新并查看聚合通用节点、clash-meta与sing-box客户端配
 green " 8. 查看 x-ui 运行日志"
 green " 9. 一键原版BBR+FQ加速"
 green "10. 管理 Acme 申请域名证书"
-green "11. 管理 Warp 查看本地Netflix、ChatGPT解锁情况，无限获取warp-wireguard账号配置"
-green "12. 刷新当前主菜单参数显示"
+green "11. 管理 Warp 查看本地Netflix、ChatGPT解锁情况"
+green "12. 添加WARP-plus-Socks5代理模式 【本地Warp/多地区Psiphon-VPN】"
+green "13. 刷新IP配置及参数显示"
 green " 0. 退出脚本"
 red "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" 
 insV=$(cat /usr/local/x-ui/v 2>/dev/null)
@@ -2361,6 +2602,48 @@ vps_ipv6='无IPV6'
 fi
 echo -e "本地IPV4地址：$blue$vps_ipv4$w4$plain   本地IPV6地址：$blue$vps_ipv6$w6$plain"
 echo "------------------------------------------------------------------------------------"
+if [[ -n $(ps -e | grep xuiwpph) ]]; then
+s5port=$(cat /usr/local/x-ui/xuiwpph.log 2>/dev/null | awk '{print $3}'| awk -F":" '{print $NF}')
+s5gj=$(cat /usr/local/x-ui/xuiwpph.log 2>/dev/null | awk '{print $6}')
+case "$s5gj" in
+AT) showgj="奥地利" ;;
+AU) showgj="澳大利亚" ;;
+BE) showgj="比利时" ;;
+BG) showgj="保加利亚" ;;
+CA) showgj="加拿大" ;;
+CH) showgj="瑞士" ;;
+CZ) showgj="捷克" ;;
+DE) showgj="德国" ;;
+DK) showgj="丹麦" ;;
+EE) showgj="爱沙尼亚" ;;
+ES) showgj="西班牙" ;;
+FI) showgj="芬兰" ;;
+FR) showgj="法国" ;;
+GB) showgj="英国" ;;
+HR) showgj="克罗地亚" ;;
+HU) showgj="匈牙利" ;;
+IE) showgj="爱尔兰" ;;
+IN) showgj="印度" ;;
+IT) showgj="意大利" ;;
+JP) showgj="日本" ;;
+LV) showgj="拉脱维亚" ;;
+NL) showgj="荷兰" ;;
+NO) showgj="挪威" ;;
+PL) showgj="波兰" ;;
+PT) showgj="葡萄牙" ;;
+RO) showgj="罗马尼亚" ;;
+RS) showgj="塞尔维亚" ;;
+SE) showgj="瑞典" ;;
+SG) showgj="新加坡" ;;
+SK) showgj="斯洛伐克" ;;
+US) showgj="美国" ;;
+esac
+grep -q "country" /usr/local/x-ui/xuiwpph.log 2>/dev/null && s5ms="多地区Psiphon代理模式 (端口:$s5port  国家:$showgj)" || s5ms="本地Warp代理模式 (端口:$s5port)"
+echo -e "WARP-plus-Socks5状态：$blue已启动 $s5ms$plain"
+else
+echo -e "WARP-plus-Socks5状态：$blue未启动$plain"
+fi
+echo "------------------------------------------------------------------------------------"
 argopid
 if [[ -n $(ps -e | grep -w $ym 2>/dev/null) || -n $(ps -e | grep -w $ls 2>/dev/null) ]]; then
 if [[ -f /usr/local/x-ui/xuiargoport.log ]]; then
@@ -2387,17 +2670,14 @@ echo -e "Argo路径path：$blue$argopath$plain"
 argolsym=$(cat /usr/local/x-ui/argo.log 2>/dev/null | grep -a trycloudflare.com | awk 'NR==2{print}' | awk -F// '{print $2}' | awk '{print $1}')
 [[ $(echo "$argolsym" | grep -w "api.trycloudflare.com/tunnel") ]] && argolsyms='生成失败，请重置' || argolsyms=$argolsym
 echo -e "Argo临时域名：$blue$argolsyms$plain"
-
 fi
 else
 echo -e "错误反馈：$red面板尚未创建一个端口为$yellow$(cat /usr/local/x-ui/xuiargoport.log 2>/dev/null)$plain$red的ws节点，推荐vmess-ws$plain$plain"
 fi
 fi
-
 if [[ -f /usr/local/x-ui/xuiargoymport.log && -f /usr/local/x-ui/xuiargoport.log ]]; then
 echo "--------------------------"
 fi
-
 if [[ -f /usr/local/x-ui/xuiargoymport.log ]]; then
 argoprotocol=$(jq -r --arg port "$(cat /usr/local/x-ui/xuiargoymport.log 2>/dev/null)" '.inbounds[] | select(.port == ($port | tonumber)) | .protocol' /usr/local/x-ui/bin/config.json)
 echo -e "Argo固定隧道状态：$blue已启动 【监听$yellow${argoprotocol}-ws$plain$blue节点的端口:$plain$yellow$(cat /usr/local/x-ui/xuiargoymport.log 2>/dev/null)$plain$blue】$plain$plain"
@@ -2434,7 +2714,7 @@ echo "--------------------------------------------------------------------------
 acp=$(/usr/local/x-ui/x-ui setting -show 2>/dev/null)
 if [[ -n $acp ]]; then
 if [[ $acp == *admin*  ]]; then
-red "x-ui出错，请重置用户名或者卸载重装x-ui"
+red "x-ui出错，请选择4重置用户名密码或者卸载重装x-ui"
 else
 xpath=$(echo $acp | awk '{print $8}')
 xport=$(echo $acp | awk '{print $6}')
@@ -2450,9 +2730,15 @@ xuimb="http://${xip1}:${xport}${xpath} 或者 http://${xip2}:${xport}${xpath}"
 else
 xuimb="http://${xip1}:${xport}${xpath}"
 fi
-echo -e "$blue默认IP登录地址(非安全)：$xuimb$plain"
+echo -e "$blue登录地址(裸IP泄露模式-非安全)：$xuimb$plain"
+if [[ -f /root/ygkkkca/cert.crt && -f /root/ygkkkca/private.key && -s /root/ygkkkca/cert.crt && -s /root/ygkkkca/private.key ]]; then
+ym=`bash ~/.acme.sh/acme.sh --list | tail -1 | awk '{print $1}'`
+echo $ym > /root/ygkkkca/ca.log
+fi
 if [[ -f /root/ygkkkca/ca.log ]]; then
-echo -e "$blue路径域名登录地址(安全)：https://$(cat /root/ygkkkca/ca.log 2>/dev/null):${xport}${xpath}$plain"
+echo -e "$blue登录地址(域名加密模式-安全)：https://$(cat /root/ygkkkca/ca.log 2>/dev/null):${xport}${xpath}$plain"
+else
+echo -e "$sred强烈建议申请域名证书并开启域名(https)登录方式，以确保面板数据安全$plain"
 fi
 fi
 else
@@ -2461,7 +2747,7 @@ echo -e "$red未安装x-ui，无显示$plain"
 fi
 red "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" 
 echo
-readp "请输入数字:" Input
+readp "请输入数字【0-13】:" Input
 case "$Input" in     
  1 ) check_uninstall && xuiinstall;;
  2 ) check_install && uninstall;;
@@ -2474,7 +2760,8 @@ case "$Input" in
  9 ) bbr;;
  10  ) acme;;
  11 ) cfwarp;;
- 12 ) show_menu;;
+ 12 ) check_install && insxuiwpph;;
+ 13 ) check_install && showxuiip && show_menu;;
  * ) exit 
 esac
 }
