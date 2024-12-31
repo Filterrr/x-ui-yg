@@ -13,9 +13,6 @@ yellow(){ echo -e "\033[33m\033[01m$1\033[0m";}
 blue(){ echo -e "\033[36m\033[01m$1\033[0m";}
 white(){ echo -e "\033[37m\033[01m$1\033[0m";}
 readp(){ read -p "$(yellow "$1")" $2;}
-if ! (uname -a | grep -Eqi "freebsd"); then
-[[ $EUID -ne 0 ]] && yellow "请以root模式运行脚本" && exit
-fi
 cur_dir=$(pwd)
 if uname -a | grep -Eqi "freebsd"; then
 release="freebsd"
