@@ -33,11 +33,6 @@ case $(uname -m) in
   *) red "目前脚本不支持$(uname -m)架构" && exit ;;
 esac
 
-argopid(){
-ym=$(cat /usr/local/x-ui/xuiargoympid.log 2>/dev/null)
-ls=$(cat /usr/local/x-ui/xuiargopid.log 2>/dev/null)
-}
-
 v4v6(){
 v4=$(curl -s4m5 icanhazip.com -k)
 v6=$(curl -s6m5 icanhazip.com -k)
@@ -203,14 +198,14 @@ echo -e "本地IPV4地址：$blue$vps_ipv4$w4$plain
 echo "------------------------------------------------------------------------------------"
 show_status
 echo "------------------------------------------------------------------------------------"
-acp=$(/usr/local/x-ui/x-ui setting -show 2>/dev/null)
+acp=$(./x-ui setting -show 2>/dev/null)
 if [[ -n $acp ]]; then
 if [[ $acp == *admin*  ]]; then
 red "x-ui出错，请选择4重置用户名密码或者卸载重装x-ui"
 else
 xpath=$(echo $acp | awk '{print $8}')
 xport=$(echo $acp | awk '{print $6}')
-xip1=$(cat /usr/local/x-ui/xip 2>/dev/null | sed -n 1p)
+xip1=$(cat x-ui/xip 2>/dev/null | sed -n 1p)
 if [ "$xpath" == "/" ]; then
 pathk="$sred【严重安全提示: 请进入面板设置，添加url根路径】$plain"
 fi
