@@ -194,7 +194,7 @@ red "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 echo -e "VPS状态如下："
 echo -e "系统:$blue$op$plain  \c";echo -e "内核:$blue$version$plain  \c";echo -e "处理器:$blue$cpu$plain  \c";echo -e "虚拟化:$blue$vi$plain  \c";echo -e "BBR算法:$blue$bbr$plain"
 v4v6
-echo -e "本地IPV4地址：$blue$vps_ipv4$w4$plain
+echo -e "本地IPV4地址：$blue$vps_ipv4$w4$plain"
 echo "------------------------------------------------------------------------------------"
 show_status
 echo "------------------------------------------------------------------------------------"
@@ -212,7 +212,7 @@ fi
 echo -e "x-ui登录信息如下："
 echo -e "$blue$acp$pathk$plain" 
 xuimb="http://${xip1}:${xport}${xpath}"
-#echo -e "$blue登录地址(裸IP泄露模式-非安全)：$xuimb$plain"
+echo -e "$blue登录地址(裸IP泄露模式-非安全)：$xuimb$plain"
 fi
 else
 echo -e "x-ui登录信息如下："
