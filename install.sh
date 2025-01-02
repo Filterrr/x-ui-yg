@@ -96,7 +96,7 @@ install_x-ui() {
 
     if [ $# == 0 ]; then
         #wget -N --no-check-certificate -O x-ui-${release}-${arch}.tar.gz https://github.com/amclubs/am-serv00-x-ui/releases/latest/download/x-ui-${release}-${arch}.tar.gz
-        wget -N --no-check-certificate -O x-ui-freebsd-amd64.tar.gz -# --retry 2 --insecure https://github.com/yonggekkk/x-ui-yg/releases/download/1.0/x-ui-freebsd-amd64.tar.gz
+        wget -N --no-check-certificate -O x-ui-freebsd-amd64.tar.gz https://github.com/yonggekkk/x-ui-yg/releases/download/1.0/x-ui-freebsd-amd64.tar.gz
         if [[ $? -ne 0 ]]; then
             echo -e "${red}下载 x-ui 失败，请确保你的服务器能够下载 Github 的文件${plain}"
             exit 1
