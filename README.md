@@ -37,11 +37,11 @@
 
 ### 一键脚本：
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Filterrr/x-ui-yg/main/install.sh)
 ```
 或
 ```
-bash <(wget -qO- https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/install.sh)
+bash <(wget -qO- https://raw.githubusercontent.com/Filterrr/x-ui-yg/main/install.sh)
 ```
 -----------------------------------------------------
 ### x-ui-yg脚本菜单界面附加功能全开预览图（注：相关参数随意填写，仅供围观）
@@ -50,7 +50,7 @@ bash <(wget -qO- https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/instal
 
 -----------------------------------------------------
 ### 感谢你右上角的star🌟
-[![Stargazers over time](https://starchart.cc/yonggekkk/x-ui-yg.svg)](https://starchart.cc/yonggekkk/x-ui-yg)
+[![Stargazers over time](https://starchart.cc/Filterrr/x-ui-yg.svg)](https://starchart.cc/Filterrr/x-ui-yg)
 
 ### 参考项目[vaxilu](https://github.com/vaxilu/x-ui)，[MHSanaei](https://github.com/MHSanaei/3x-ui)，[qist](https://github.com/qist/xray-ui)，[warpplus](https://github.com/bepass-org/warp-plus)
 
