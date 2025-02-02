@@ -157,7 +157,7 @@ serinstall(){
 green "下载并安装x-ui相关组件……"
 cd /usr/local/
 #curl -L -o /usr/local/x-ui-linux-${cpu}.tar.gz --insecure https://gitlab.com/rwkgyg/x-ui-yg/raw/main/x-ui-linux-${cpu}.tar.gz
-curl -L -o /usr/local/x-ui-linux-${cpu}.tar.gz -# --retry 2 --insecure https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/x-ui-linux-${cpu}.tar.gz
+curl -L -o /usr/local/x-ui-linux-${cpu}.tar.gz -# --retry 2 --insecure https://raw.githubusercontent.com/Filterrr/x-ui-yg/main/x-ui-linux-${cpu}.tar.gz
 tar zxvf x-ui-linux-${cpu}.tar.gz > /dev/null 2>&1
 rm x-ui-linux-${cpu}.tar.gz -f
 cd x-ui
@@ -169,7 +169,7 @@ systemctl start x-ui >/dev/null 2>&1
 cd
 rm /usr/bin/x-ui -f
 #curl -L -o /usr/bin/x-ui --insecure https://gitlab.com/rwkgyg/x-ui-yg/raw/main/1install.sh >/dev/null 2>&1
-curl -L -o /usr/bin/x-ui -# --retry 2 --insecure https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/install.sh
+curl -L -o /usr/bin/x-ui -# --retry 2 --insecure https://raw.githubusercontent.com/Filterrr/x-ui-yg/main/install.sh
 chmod +x /usr/bin/x-ui
 if [[ x"${release}" == x"alpine" ]]; then
 echo '#!/sbin/openrc-run
@@ -303,7 +303,7 @@ resinstall(){
 echo "----------------------------------------------------------------------"
 restart
 #curl -sL https://gitlab.com/rwkgyg/x-ui-yg/-/raw/main/version/version | awk -F "更新内容" '{print $1}' | head -n 1 > /usr/local/x-ui/v
-curl -sL https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/version | awk -F "更新内容" '{print $1}' | head -n 1 > /usr/local/x-ui/v
+curl -sL https://raw.githubusercontent.com/Filterrr/x-ui-yg/main/version | awk -F "更新内容" '{print $1}' | head -n 1 > /usr/local/x-ui/v
 showxuiip
 sleep 2
 xuigo
@@ -342,7 +342,7 @@ fi
 serinstall && sleep 2
 restart
 #curl -sL https://gitlab.com/rwkgyg/x-ui-yg/-/raw/main/version/version | awk -F "更新内容" '{print $1}' | head -n 1 > /usr/local/x-ui/v
-curl -sL https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/version | awk -F "更新内容" '{print $1}' | head -n 1 > /usr/local/x-ui/v
+curl -sL https://raw.githubusercontent.com/Filterrr/x-ui-yg/main/version | awk -F "更新内容" '{print $1}' | head -n 1 > /usr/local/x-ui/v
 green "x-ui更新完成" && sleep 2 && x-ui
 else
 red "输入有误" && update
@@ -378,7 +378,7 @@ rm -rf xuiyg_update
 echo
 green "x-ui已卸载完成"
 echo
-blue "欢迎继续使用x-ui-yg脚本：bash <(curl -Ls https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/install.sh)"
+blue "欢迎继续使用x-ui-yg脚本：bash <(curl -Ls https://raw.githubusercontent.com/Filterrr/x-ui-yg/main/install.sh)"
 echo
 else
 red "输入有误" && uninstall
@@ -2356,7 +2356,7 @@ case $(uname -m) in
 aarch64) cpu=arm64;;
 x86_64) cpu=amd64;;
 esac
-curl -L -o /usr/local/x-ui/xuiwpph -# --retry 2 --insecure https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/xuiwpph_$cpu
+curl -L -o /usr/local/x-ui/xuiwpph -# --retry 2 --insecure https://raw.githubusercontent.com/Filterrr/x-ui-yg/main/xuiwpph_$cpu
 chmod +x /usr/local/x-ui/xuiwpph
 fi
 if [[ -n $(ps -e | grep xuiwpph) ]]; then
@@ -2507,14 +2507,14 @@ green " 0. 退出脚本"
 red "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" 
 insV=$(cat /usr/local/x-ui/v 2>/dev/null)
 #latestV=$(curl -s https://gitlab.com/rwkgyg/x-ui-yg/-/raw/main/version/version | awk -F "更新内容" '{print $1}' | head -n 1)
-latestV=$(curl -sL https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/version | awk -F "更新内容" '{print $1}' | head -n 1)
+latestV=$(curl -sL https://raw.githubusercontent.com/Filterrr/x-ui-yg/main/version | awk -F "更新内容" '{print $1}' | head -n 1)
 if [[ -f /usr/local/x-ui/v ]]; then
 if [ "$insV" = "$latestV" ]; then
 echo -e "当前 x-ui-yg 脚本最新版：${bblue}${insV}${plain} (已安装)"
 else
 echo -e "当前 x-ui-yg 脚本版本号：${bblue}${insV}${plain}"
 echo -e "检测到最新 x-ui-yg 脚本版本号：${yellow}${latestV}${plain} (可选择6进行更新)"
-echo -e "${yellow}$(curl -sL https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/version)${plain}"
+echo -e "${yellow}$(curl -sL https://raw.githubusercontent.com/Filterrr/x-ui-yg/main/version)${plain}"
 #echo -e "${yellow}$(curl -sL https://gitlab.com/rwkgyg/x-ui-yg/-/raw/main/version/version)${plain}"
 fi
 else
